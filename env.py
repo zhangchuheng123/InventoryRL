@@ -5,8 +5,6 @@ from gym import spaces
 
 class SingleSKUEnv(object):
     
-    MAX_TIME_LIMIT = 200
-    
     def __init__(self, 
         num_product = 1,                    # I
         product_lifetime = [4],             # P
@@ -18,6 +16,7 @@ class SingleSKUEnv(object):
         fixed_order_cost = [1],             # f
         perish_cost = [15],                 # another p
         profit = [5],           
+        time_limit = 200,
         action_space = spaces.Discrete(10),
         demand_func = lambda: np.random.randint(3, size=(1,))):
     
@@ -32,10 +31,10 @@ class SingleSKUEnv(object):
             fixed_order_cost=fixed_order_cost,
             perish_cost=perish_cost,
             profit=profit,
+            time_limit=time_limit,
             action_space=action_space,
             demand_func=demand_func
         )
-        self.counter = 0
         self._record = []
 
     def seed(self, s):
@@ -45,15 +44,11 @@ class SingleSKUEnv(object):
         pass 
         
     def reset(self):
-        self.counter = 0
         self._record = []
         return self.env.reset()[0, :]
     
     def step(self, action):
-        self.counter += 1
         states, rewards, done, info = self.env.step(np.array([action]))
-        if self.counter >= self.MAX_TIME_LIMIT:
-            done = True
         self._record.append(info[0])
         return states[0, :], rewards[0], done, info
     
@@ -84,6 +79,7 @@ class InventoryEnv(object):
         fixed_order_cost = [3, 1],          # f
         perish_cost = [20, 15],             # another p
         profit = [5, 5],           
+        time_limit = 200,
         action_space = np.arange(10),
         demand_func = lambda: np.random.randint(3, size=(2,))):
 
@@ -97,12 +93,16 @@ class InventoryEnv(object):
         self.lost_sale_cost = lost_sale_cost
         self.fixed_order_cost = fixed_order_cost
         self.perish_cost = perish_cost
+        self.time_limit = time_limit
         self.action_space = action_space
         self.demand_func = demand_func
 
         self.products = [None] * self.num_product
     
     def reset(self):
+
+        self.counter = 0
+
         for i in range(self.num_product):
             self.products[i] = \
                 Product(self.product_lifetime[i], self.max_lead_time[i], self.arrival_prob)
@@ -110,6 +110,8 @@ class InventoryEnv(object):
         return np.array(states)
     
     def step(self, action):
+
+        self.counter += 1
 
         demands = self.demand_func()
         rewards = np.zeros(self.num_product)
@@ -124,7 +126,10 @@ class InventoryEnv(object):
             rewards[i] -= self.perish_cost[i] * info[-1]['perished_inventory']
             states.append(self.products[i].get_state())
 
-        done = False
+        if self.counter >= self.time_limit:
+            done = True
+        else:
+            done = False
 
         return np.array(states), rewards, done, info
 
@@ -236,8 +241,37 @@ class VectorEnv(object):
 def make_env(name, etype):
     if name == 'SingleSKUEnv':
         if etype == 'train':
-            return SingleSKUEnv()
+            # Chenyi provides this configuration
+            return SingleSKUEnv(
+                num_product = 1,          
+                product_lifetime = [5],       
+                max_lead_time = [4],       
+                arrival_prob = [1, 0.8, 0.6, 0.4, 0.2],  
+                max_demand = [10],
+                holding_cost = [3],           
+                lost_sale_cost = [10],         
+                fixed_order_cost = [3],       
+                perish_cost = [20],   
+                profit = [0],
+                time_limit = 125,
+                action_space = spaces.Discrete(10),
+                demand_func = lambda: np.random.randint(3, size=(1,))
+                )
         elif etype == 'valid':
-            return SingleSKUEnv()
+            return SingleSKUEnv(
+                num_product = 1,          
+                product_lifetime = [5],
+                max_lead_time = [4],
+                arrival_prob = [1, 0.8, 0.6, 0.4, 0.2],
+                max_demand = [10],
+                holding_cost = [3],
+                lost_sale_cost = [10],         
+                fixed_order_cost = [3],       
+                perish_cost = [20],   
+                profit = [0],           
+                time_limit = 125,
+                action_space = spaces.Discrete(10),
+                demand_func = lambda: np.random.randint(3, size=(1,))
+                )
     else:
         raise NotImplementedError

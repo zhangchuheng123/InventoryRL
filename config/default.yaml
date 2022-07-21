@@ -12,11 +12,10 @@ algo:
   multi_step: 1
   target_entropy_ratio: 0.98
   target_update_interval: 8000
-  use_per: False                
+  use_per: False
   use_dueling: False
   start_steps: 5000
   normalization_steps: 2000
-  lamda: 0.97
   clip_reward: False
   zscore_reward: True
   normalize_state: True
@@ -26,7 +25,7 @@ algo:
   eval_interval: 10000
   no_term: False
   evaluate_steps: 6000
-  gamma: 0.98
+  gamma: 0.95
 
 env:
   num_parallel_envs: 1

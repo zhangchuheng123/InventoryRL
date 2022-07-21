@@ -471,11 +471,13 @@ class BaseAgent(ABC):
         num_episodes = 0
         num_steps = 0
         total_return = 0.0
+        total_return_discount = 0.0
 
         while True:
             state = self.env_valid.reset()
             episode_steps = 0
             episode_return = 0.0
+            episode_return_discount = 0.0
             done = False
             while not done:
                 action = self.exploit(state)
@@ -494,12 +496,12 @@ class BaseAgent(ABC):
         mean_return = total_return / num_episodes
 
         if mean_return > self.best_eval_score:
-            # self.env_valid.record.to_csv(os.path.join(self.record_dir, 
-            #     'record_{:010d}.csv'.format(self.steps)))
+            self.env_valid.record.to_csv(os.path.join(self.record_dir, 
+                'record_{:010d}.csv'.format(self.steps)))
             self.best_eval_score = mean_return
             self.save_models(os.path.join(self.model_dir, 'best'))
 
-        self.writer.add_scalar('eval/reward', mean_return, self.steps)
+        self.writer.add_scalar('eval/return', mean_return, self.steps)
 
         if self.verbose >= 1:
             print('-' * 60)
