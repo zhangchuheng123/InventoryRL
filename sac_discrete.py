@@ -231,6 +231,7 @@ class BaseAgent(ABC):
         self.best_eval_score = -np.inf
         self.num_steps = self.config.algo.num_steps
         self.batch_size = self.config.algo.batch_size
+        self.gamma = self.config.algo.gamma
         self.gamma_n = self.config.algo.gamma ** self.config.algo.multi_step
         self.start_steps = self.config.algo.start_steps
         self.update_interval = self.config.algo.update_interval
@@ -245,10 +246,10 @@ class BaseAgent(ABC):
 
         # Create environments
         if self.num_parallel_envs == 1:
-            self.env_train = make_env(self.config.env.name, etype='train')
+            self.env_train = make_env(self.config.env, etype='train')
         else:
             raise NotImplementedError
-        self.env_valid = make_env(self.config.env.name, etype='valid')
+        self.env_valid = make_env(self.config.env, etype='valid')
 
         if torch.cuda.is_available():
             self.device = self.config.basic.device
@@ -354,8 +355,10 @@ class BaseAgent(ABC):
 
         state = self.env_train.reset()
         if self.config.algo.normalize_state:
-            state = self.state_scaler.transform(state)
+            state = self.state_scaler.transform(state[None, ...])
         episode_return = 0
+        episode_return_discount = 0
+        episode_budget_discount = 0
         episode_steps = 0
 
         for steps in trange(self.num_steps, desc='Train'):
@@ -366,6 +369,10 @@ class BaseAgent(ABC):
 
             # Count steps
             episode_return += np.sum(reward)
+            episode_return_discount += np.sum(reward) \
+                * (self.gamma ** (episode_steps // self.num_parallel_envs))
+            episode_budget_discount += info[-1]['total_budget'] \
+                * (self.gamma ** (episode_steps // self.num_parallel_envs))
             episode_steps += self.num_parallel_envs
             self.steps += self.num_parallel_envs
 
@@ -397,13 +404,21 @@ class BaseAgent(ABC):
                 self.episodes += self.num_parallel_envs
                 episode_return /= self.num_parallel_envs
                 episode_steps /= self.num_parallel_envs
+                episode_return_discount /= self.num_parallel_envs
+                episode_budget_discount /= self.num_parallel_envs
                 self.writer.add_scalar('train/ep_return', episode_return, self.steps)
                 self.writer.add_scalar('train/ep_length', episode_steps, self.steps)
+                self.writer.add_scalar('train/ep_return_discount', 
+                    episode_return_discount, self.steps)
+                self.writer.add_scalar('train/ep_budget_discount', 
+                    episode_budget_discount, self.steps)
                 if self.verbose >= 2:
                     print('Episode: {:<4}  Episode steps: {:<4} Return: {:<5.1f}'.format(
                         self.episodes, episode_steps, episode_return))
                 episode_return = 0
                 episode_steps = 0
+                episode_return_discount = 0
+                episode_budget_discount = 0
 
             if self.steps % self.update_interval == 0 and self.steps >= self.start_steps:
                 self.learn()
@@ -470,30 +485,37 @@ class BaseAgent(ABC):
 
         num_episodes = 0
         num_steps = 0
-        total_return = 0.0
-        total_return_discount = 0.0
+        total_return = 0
+        total_return_discount = 0
+        total_budget_discount = 0
 
         while True:
             state = self.env_valid.reset()
             episode_steps = 0
-            episode_return = 0.0
-            episode_return_discount = 0.0
+            episode_return = 0
+            episode_return_discount = 0
+            episode_budget_discount = 0
             done = False
             while not done:
                 action = self.exploit(state)
-                next_state, reward, done, _ = self.env_valid.step(action)
+                next_state, reward, done, info = self.env_valid.step(action)
                 num_steps += 1
-                episode_steps += 1
                 episode_return += reward
+                episode_return_discount += reward * self.gamma ** episode_steps
+                episode_budget_discount += info[-1]['total_budget'] * self.gamma ** episode_steps
+                episode_steps += 1
                 state = next_state
 
             num_episodes += 1
             total_return += episode_return
+            total_return 
 
             if num_steps > self.evaluate_steps:
                 break
 
         mean_return = total_return / num_episodes
+        mean_return_discount = total_return_discount / num_episodes
+        mean_budget_discount = total_budget_discount / num_episodes
 
         if mean_return > self.best_eval_score:
             self.env_valid.record.to_csv(os.path.join(self.record_dir, 
@@ -502,6 +524,8 @@ class BaseAgent(ABC):
             self.save_models(os.path.join(self.model_dir, 'best'))
 
         self.writer.add_scalar('eval/return', mean_return, self.steps)
+        self.writer.add_scalar('eval/return_discount', mean_return_discount, self.steps)
+        self.writer.add_scalar('eval/budget_discount', mean_budget_discount, self.steps)
 
         if self.verbose >= 1:
             print('-' * 60)

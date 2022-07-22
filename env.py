@@ -59,7 +59,7 @@ class SingleSKUEnv(object):
     @property
     def observation_space(self):
         dim = self.env.product_lifetime[0] + self.env.max_lead_time[0]
-        return spaces.Box(np.zeros((dim, )), np.inf * np.ones((dim, ))) 
+        return spaces.Box(np.zeros((dim, )), np.inf * np.ones((dim, )), dtype=np.float32)
 
     @property
     def record(self):
@@ -117,6 +117,7 @@ class InventoryEnv(object):
         rewards = np.zeros(self.num_product)
         states = []
         info = []
+        budget = 0
         for i in range(self.num_product):
             info.append(self.products[i].step(action[i], demands[i]))
             # rewards[i] += self.profit[i] * info[-1]['sold_quantity']
@@ -124,12 +125,15 @@ class InventoryEnv(object):
             rewards[i] -= self.lost_sale_cost[i] * info[-1]['lost_sales']
             rewards[i] -= self.fixed_order_cost[i] * info[-1]['place_order']
             rewards[i] -= self.perish_cost[i] * info[-1]['perished_inventory']
+            budget += self.perish_cost[i] * info[-1]['perished_inventory']
             states.append(self.products[i].get_state())
 
         if self.counter >= self.time_limit:
             done = True
         else:
             done = False
+
+        info.append(dict(total_budget=budget))
 
         return np.array(states), rewards, done, info
 
@@ -238,40 +242,25 @@ class VectorEnv(object):
         self.pool.close()
 
 
-def make_env(name, etype):
-    if name == 'SingleSKUEnv':
-        if etype == 'train':
-            # Chenyi provides this configuration
-            return SingleSKUEnv(
-                num_product = 1,          
-                product_lifetime = [5],       
-                max_lead_time = [4],       
-                arrival_prob = [1, 0.8, 0.6, 0.4, 0.2],  
-                max_demand = [10],
-                holding_cost = [3],           
-                lost_sale_cost = [10],         
-                fixed_order_cost = [3],       
-                perish_cost = [20],   
-                profit = [0],
-                time_limit = 125,
-                action_space = spaces.Discrete(10),
-                demand_func = lambda: np.random.randint(3, size=(1,))
-                )
-        elif etype == 'valid':
-            return SingleSKUEnv(
-                num_product = 1,          
-                product_lifetime = [5],
-                max_lead_time = [4],
-                arrival_prob = [1, 0.8, 0.6, 0.4, 0.2],
-                max_demand = [10],
-                holding_cost = [3],
-                lost_sale_cost = [10],         
-                fixed_order_cost = [3],       
-                perish_cost = [20],   
-                profit = [0],           
-                time_limit = 125,
-                action_space = spaces.Discrete(10),
-                demand_func = lambda: np.random.randint(3, size=(1,))
-                )
+def make_env(config, etype):
+    pdb.set_trace()
+    if config.name == 'SingleSKUEnv':
+        # Chenyi provides this configuration
+        assert config.demand_type == 'uniform'
+        return SingleSKUEnv(
+            num_product = config.num_product,
+            product_lifetime = config.product_lifetime,       
+            max_lead_time = config.max_lead_time,       
+            arrival_prob = config.arrival_prob,  
+            max_demand = config.max_demand,
+            holding_cost = config.holding_cost,           
+            lost_sale_cost = config.lost_sale_cost,         
+            fixed_order_cost = config.fixed_order_cost,       
+            perish_cost = config.perish_cost,
+            profit = config.profit,
+            time_limit = config.time_limit,
+            action_space = spaces.Discrete(config.action_space_size),
+            demand_func = lambda: np.random.randint(config.max_demand, size=(1,))
+            )
     else:
         raise NotImplementedError
