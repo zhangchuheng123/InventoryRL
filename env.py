@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from gym import spaces
+import pdb
 
 
 class SingleSKUEnv(object):
@@ -243,7 +244,6 @@ class VectorEnv(object):
 
 
 def make_env(config, etype):
-    pdb.set_trace()
     if config.name == 'SingleSKUEnv':
         # Chenyi provides this configuration
         assert config.demand_type == 'uniform'
