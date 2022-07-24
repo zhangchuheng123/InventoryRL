@@ -508,7 +508,8 @@ class BaseAgent(ABC):
 
             num_episodes += 1
             total_return += episode_return
-            total_return 
+            total_return_discount += episode_return_discount
+            total_budget_discount += episode_budget_discount 
 
             if num_steps > self.evaluate_steps:
                 break
