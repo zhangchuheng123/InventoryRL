@@ -460,26 +460,26 @@ class BaseAgent(ABC):
         if self.learning_steps % self.log_interval == 0:
             self.writer.add_scalar(
                 'loss/Q1', q1_loss.detach().item(),
-                self.learning_steps)
+                self.steps)
             self.writer.add_scalar(
                 'loss/Q2', q2_loss.detach().item(),
-                self.learning_steps)
+                self.steps)
             self.writer.add_scalar(
                 'loss/policy', policy_loss.detach().item(),
-                self.learning_steps)
+                self.steps)
             self.writer.add_scalar(
                 'loss/alpha', entropy_loss.detach().item(),
-                self.learning_steps)
+                self.steps)
             self.writer.add_scalar(
                 'stats/alpha', self.alpha.detach().item(),
-                self.learning_steps)
+                self.steps)
             self.writer.add_scalar(
-                'stats/mean_Q1', mean_q1, self.learning_steps)
+                'stats/mean_Q1', mean_q1, self.steps)
             self.writer.add_scalar(
-                'stats/mean_Q2', mean_q2, self.learning_steps)
+                'stats/mean_Q2', mean_q2, self.steps)
             self.writer.add_scalar(
                 'stats/entropy', entropies.detach().mean().item(),
-                self.learning_steps)
+                self.steps)
 
     def evaluate(self):
 

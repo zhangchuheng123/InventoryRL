@@ -1,0 +1,62 @@
+basic:
+  device: cuda
+  accuracy: float32
+  seed: 6666
+  verbose: 1
+
+algo:
+  num_steps: 5000000    # 5M
+  batch_size: 64
+  lr: 0.0003                    # CHECK
+  memory_size: 300000   # 300k
+  multi_step: 1
+  target_entropy_ratio: 0.98    # CHECK
+  target_update_interval: 8000
+  use_per: False
+  use_dueling: False
+  start_steps: 5000
+  normalization_steps: 2000
+  clip_reward: False
+  zscore_reward: True
+  normalize_state: True
+  hidden_size: 64
+  update_interval: 4
+  log_interval: 20
+  eval_interval: 10000
+  no_term: True
+  evaluate_steps: 6000
+  gamma: 0.95
+
+# Chenyi provides this configuration
+env:
+  num_parallel_envs: 1
+  name: SingleSKUEnv
+  state_dtype: float32
+  encoder: MLP
+  num_product: 1
+  product_lifetime: 
+    - 5  
+  max_lead_time: 
+    - 4 
+  arrival_prob:
+    - 1
+    - 0.8
+    - 0.6
+    - 0.4
+    - 0.2
+  max_demand:
+    - 10
+  holding_cost:
+    - 3
+  lost_sale_cost: 
+    - 10
+  fixed_order_cost:
+    - 3
+  perish_cost:
+    - 0
+  profit:
+    - 0
+  time_limit: 125
+  action_space_size: 10
+  demand_type: uniform
+  max_demand: 10
