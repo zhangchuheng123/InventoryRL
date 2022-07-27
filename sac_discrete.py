@@ -371,7 +371,7 @@ class BaseAgent(ABC):
             episode_return += np.sum(reward)
             episode_return_discount += np.sum(reward) \
                 * (self.gamma ** (episode_steps // self.num_parallel_envs))
-            episode_budget_discount += info[-1]['total_budget'] \
+            episode_budget_discount += info[-1]['perished_quantity'] \
                 * (self.gamma ** (episode_steps // self.num_parallel_envs))
             episode_steps += self.num_parallel_envs
             self.steps += self.num_parallel_envs
@@ -502,7 +502,7 @@ class BaseAgent(ABC):
                 num_steps += 1
                 episode_return += reward
                 episode_return_discount += reward * self.gamma ** episode_steps
-                episode_budget_discount += info[-1]['total_budget'] * self.gamma ** episode_steps
+                episode_budget_discount += info[-1]['perished_quantity'] * self.gamma ** episode_steps
                 episode_steps += 1
                 state = next_state
 

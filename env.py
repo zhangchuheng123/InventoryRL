@@ -118,7 +118,7 @@ class InventoryEnv(object):
         rewards = np.zeros(self.num_product)
         states = []
         info = []
-        budget = 0
+        perished_quantity = 0
         for i in range(self.num_product):
             info.append(self.products[i].step(action[i], demands[i]))
             # rewards[i] += self.profit[i] * info[-1]['sold_quantity']
@@ -126,7 +126,7 @@ class InventoryEnv(object):
             rewards[i] -= self.lost_sale_cost[i] * info[-1]['lost_sales']
             rewards[i] -= self.fixed_order_cost[i] * info[-1]['place_order']
             rewards[i] -= self.perish_cost[i] * info[-1]['perished_inventory']
-            budget += self.perish_cost[i] * info[-1]['perished_inventory']
+            perished_quantity += info[-1]['perished_inventory']
             states.append(self.products[i].get_state())
 
         if self.counter >= self.time_limit:
@@ -134,7 +134,7 @@ class InventoryEnv(object):
         else:
             done = False
 
-        info.append(dict(total_budget=budget))
+        info.append(dict(perished_quantity=perished_quantity))
 
         return np.array(states), rewards, done, info
 
