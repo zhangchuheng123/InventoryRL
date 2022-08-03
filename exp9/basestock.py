@@ -45,7 +45,7 @@ from env import make_env, VectorEnv
 from memory import LazyMultiStepMemory, LazyPrioritizedMultiStepMemory
 
 
-class BasestockAgent(objective):
+class BasestockAgent(object):
 
     def __init__(self, args):
 
@@ -56,21 +56,33 @@ class BasestockAgent(objective):
         self.config = DefaultMunch.fromDict(config)
         self.env_valid = make_env(self.config.env, etype='valid')
 
+        self.seed = self.config.basic.seed
+        self.set_seed(self.seed)
+
         self.exp_name = args.config.split('/')[-1].rstrip('.yaml')
         self.exp_time = datetime.now().strftime("%Y%m%d-%H%M")
         self.log_dir = os.path.join('logs', 
             '{name}-{seed}-{time}'.format(name=self.exp_name, 
             seed=self.seed, time=self.exp_time))
-        self.model_dir = os.path.join(self.log_dir, 'model')
-        self.summary_dir = os.path.join(self.log_dir, 'summary')
         self.record_dir = os.path.join(self.log_dir, 'record')
+        os.makedirs(self.record_dir, exist_ok=True)
+
+        self.gamma = self.config.algo.gamma
+        self.evaluate_steps = self.config.algo.evaluate_steps
+
+    @staticmethod
+    def set_seed(seed=1234):
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed(seed)
 
     def evaluate(self):
         record = []
         for basestock_level in range(self.config.env.action_space_size):
             record.append(self.evaluate_single(basestock_level))
             print(record[-1])
-        pd.Dataframe(record).to_csv(os.path.join(self.record_dir, 'result.csv'))
+        pd.DataFrame(record).to_csv(os.path.join(self.record_dir, 'result.csv'))
 
     def policy(self, basestock_level, state):
         action = basestock_level - np.sum(state)
@@ -93,7 +105,7 @@ class BasestockAgent(objective):
             episode_budget_discount = 0
             done = False
             while not done:
-                action = self.policy(state)
+                action = self.policy(basestock_level, state)
                 next_state, reward, done, info = self.env_valid.step(action)
                 num_steps += 1
                 episode_return += reward

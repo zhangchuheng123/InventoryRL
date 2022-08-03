@@ -49,11 +49,11 @@ env:
   holding_cost:
     - 3
   lost_sale_cost: 
-    - 10
+    - 2.5
   fixed_order_cost:
     - 3
   perish_cost:
-    - 0
+    - 20
   profit:
     - 0
   time_limit: 125
