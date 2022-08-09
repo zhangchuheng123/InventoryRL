@@ -351,8 +351,8 @@ class BaseAgent(ABC):
 
         return reward
 
-    def _basestock_wrapper(self, action, state):
-        action = action - np.sum(state)
+    def _basestock_wrapper(self, action, state_sum):
+        action = action - state_sum
         action = np.clip(action, 0, self.config.env.action_space_size - 1)
         return action
 
@@ -364,6 +364,7 @@ class BaseAgent(ABC):
     def train(self):
 
         state = self.env_train.reset()
+        state_sum = np.sum(state)
         state = self._normalize_state(state)
 
         episode_return = 0
@@ -371,13 +372,17 @@ class BaseAgent(ABC):
         episode_return_discount = 0
         episode_budget_discount = 0
         episode_steps = 0
+        episode_actions = []
 
         for steps in trange(self.num_steps, desc='Train'):
 
             # Environment interaction
             action = self.explore(state)
-            # action = self._basestock_wrapper(action, state)
+            if self.config.algo.use_basestock_wrapper:
+                action = self._basestock_wrapper(action, state_sum)
+            episode_actions.append(action)
             next_state, reward, done, info = self.env_train.step(action)
+            next_state_sum = np.sum(next_state)
             next_state = self._normalize_state(next_state)
 
             # Count steps
@@ -403,9 +408,11 @@ class BaseAgent(ABC):
             # Next state
             if self.num_parallel_envs == 1 and done:
                 state = self.env_train.reset()
+                state_sum = np.sum(state)
                 state = self._normalize_state(state)
             else:
                 state = next_state
+                state_sum = next_state_sum
 
             # Episodic statistics
             if (self.num_parallel_envs == 1 and done) or \
@@ -414,7 +421,7 @@ class BaseAgent(ABC):
                 # For environments with asynchronous termination, 
                 #   this statistics is not accurate.
 
-                self.episodes += self.num_parallel_envs
+                self.episodes += self.num_parallel_envs 
                 episode_return /= self.num_parallel_envs
                 episode_budget /= self.num_parallel_envs
                 episode_steps /= self.num_parallel_envs
@@ -431,9 +438,13 @@ class BaseAgent(ABC):
                     print('Episode: {:<4}  Episode steps: {:<4} Return: {:<5.1f}'.format(
                         self.episodes, episode_steps, episode_return))
                 episode_return = 0
+                episode_budget = 0
                 episode_steps = 0
                 episode_return_discount = 0
                 episode_budget_discount = 0
+
+                self.writer.add_histogram('train/ep_actions', np.array(episode_actions), self.steps)
+                episode_actions = []
 
             if self.steps % self.update_interval == 0 and self.steps >= self.start_steps:
                 self.learn()
@@ -504,9 +515,11 @@ class BaseAgent(ABC):
         total_budget = 0
         total_return_discount = 0
         total_budget_discount = 0
+        total_actions = []
 
         while True:
             state = self.env_valid.reset()
+            state_sum = np.sum(state)
             state = self._normalize_state(state).flatten()
             episode_steps = 0
             episode_return = 0
@@ -516,8 +529,11 @@ class BaseAgent(ABC):
             done = False
             while not done:
                 action = self.exploit(state)
-                # action = self._basestock_wrapper(action, state)
+                if self.config.algo.use_basestock_wrapper:
+                    action = self._basestock_wrapper(action, state_sum)
+                total_actions.append(action)
                 next_state, reward, done, info = self.env_valid.step(action)
+                next_state_sum = np.sum(next_state)
                 next_state = self._normalize_state(next_state).flatten()
                 num_steps += 1
                 episode_return += reward
@@ -526,6 +542,7 @@ class BaseAgent(ABC):
                 episode_budget_discount += info[-1]['perished_quantity'] * self.gamma ** episode_steps
                 episode_steps += 1
                 state = next_state
+                state_sum = next_state_sum
 
             num_episodes += 1
             total_return += episode_return
@@ -551,6 +568,7 @@ class BaseAgent(ABC):
         self.writer.add_scalar('eval/budget', mean_budget, self.steps)
         self.writer.add_scalar('eval/return_discount', mean_return_discount, self.steps)
         self.writer.add_scalar('eval/budget_discount', mean_budget_discount, self.steps)
+        self.writer.add_histogram('eval/actions', np.array(total_actions), self.steps)
 
         if self.verbose >= 1:
             print('-' * 60)
@@ -635,7 +653,6 @@ class SacdAgent(BaseAgent):
             # random sample action to collect some samples
             if self.num_parallel_envs == 1:
                 action = np.random.choice(self.env_train.action_space.n)
-                # action = self._basestock_wrapper(action, state)
                 state, reward, done, _ = self.env_train.step(action)
                 self.reward_filter.update(reward)
                 acc_states.append(state)
@@ -644,7 +661,6 @@ class SacdAgent(BaseAgent):
             else:
                 actions = np.random.choice(self.env_train.action_space.n, 
                     size=self.num_parallel_envs)
-                # actions = self._basestock_wrapper(actions, states)
                 states, rewards, _, _ = self.env_train.step(actions)
                 for reward in rewards:
                     self.reward_filter.update(reward)
