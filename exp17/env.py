@@ -19,7 +19,10 @@ class SingleSKUEnv(object):
         profit = [5],           
         time_limit = 200,
         action_space = spaces.Discrete(10),
-        demand_func = lambda: np.random.randint(3, size=(1,))):
+        demand_func = lambda: np.random.randint(3, size=(1,)),
+        budget = 'lost_quantity'):
+
+        self.budget = budget
     
         self.env = InventoryEnv(
             num_product=num_product, 
@@ -53,6 +56,22 @@ class SingleSKUEnv(object):
         self._record.append(info[0])
         return states[0, :], rewards[0], done, info
     
+    def get_coeff(self):
+        if self.budget == 'lost_quantity':
+            return self.env.lost_sale_cost[0]
+        elif self.budget == 'perished_quantity':
+            return self.env.perish_cost[0]
+        else:
+            raise NotImplementedError
+
+    def set_coeff(self, value):
+        if self.budget == 'lost_quantity':
+            self.env.lost_sale_cost[0] = value
+        elif self.budget == 'perished_quantity':
+            self.env.perish_cost[0] = value
+        else:
+            raise NotImplementedError
+
     @property
     def action_space(self):
         return self.env.action_space
@@ -126,8 +145,8 @@ class InventoryEnv(object):
             rewards[i] -= self.holding_cost[i] * info[-1]['total_inventory']
             rewards[i] -= self.lost_sale_cost[i] * info[-1]['lost_sales']
             rewards[i] -= self.fixed_order_cost[i] * info[-1]['place_order']
-            rewards[i] -= self.perish_cost[i] * info[-1]['perished_inventory']
-            perished_quantity += info[-1]['perished_inventory']
+            rewards[i] -= self.perish_cost[i] * info[-1]['perished_quantity']
+            perished_quantity += info[-1]['perished_quantity']
             lost_quantity += info[-1]['lost_sales']
             states.append(self.products[i].get_state())
 
@@ -172,7 +191,7 @@ class Product(object):
             self.inventory[i] -= consumed_demand
             remaining_demand -= consumed_demand
 
-        perished_inventory = self.inventory[0]
+        perished_quantity = self.inventory[0]
         self.inventory[:-1] = self.inventory[1:]
         self.inventory[-1] = 0
 
@@ -185,7 +204,7 @@ class Product(object):
             intransit_quantity = np.sum(self.pending_orders),
             lost_sales = lost_sales,
             place_order = (order > 0) * 1,
-            perished_inventory = perished_inventory,
+            perished_quantity = perished_quantity,
             inventory = str(self.inventory),
             pending_orders = str(self.pending_orders),
         )
@@ -265,7 +284,8 @@ def make_env(config, etype):
             profit = config.profit,
             time_limit = config.time_limit,
             action_space = spaces.Discrete(config.action_space_size),
-            demand_func = lambda: np.random.randint(config.max_demand, size=(1,))
+            demand_func = lambda: np.random.randint(config.max_demand, size=(1,)),
+            budget = config.budget
             )
     else:
         raise NotImplementedError

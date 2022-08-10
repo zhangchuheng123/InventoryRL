@@ -246,10 +246,11 @@ class BaseAgent(ABC):
 
         # Create environments
         if self.num_parallel_envs == 1:
-            self.env_train = make_env(self.config.env, etype='train')
+            self.env_train = make_env(self.config.env.copy(), etype='train')
         else:
             raise NotImplementedError
-        self.env_valid = make_env(self.config.env, etype='valid')
+        self.env_valid = make_env(self.config.env.copy(), etype='valid')
+        self.env_valid.set_coeff(0)
 
         if torch.cuda.is_available():
             self.device = self.config.basic.device
@@ -376,6 +377,8 @@ class BaseAgent(ABC):
         episode_steps = 0
         episode_actions = []
 
+        budget_estimator = deque(maxlen=self.config.algo.budget_estimation_episodes)
+
         for steps in trange(self.num_steps, desc='Train'):
 
             # Environment interaction
@@ -419,6 +422,16 @@ class BaseAgent(ABC):
                 state = next_state
                 state_sum = next_state_sum
 
+            # Update budget coeff
+            if self.steps % self.config.algo.budget_estimation_episodes == 0 \
+                and self.steps >= self.start_steps:
+
+                estimated_budget = np.mean(budget_estimator)
+                coeff = self.env_train.get_coeff()
+                coeff = max(coeff + (estimated_budget - self.config.env.target_budget_discount) \
+                     * self.config.algo.budget_dual_stepsize, 0)
+                self.env_train.set_coeff(coeff)
+
             # Episodic statistics
             if (self.num_parallel_envs == 1 and done) or \
                 (self.num_parallel_envs > 1 and done[0]):
@@ -439,9 +452,11 @@ class BaseAgent(ABC):
                     episode_return_discount, self.steps)
                 self.writer.add_scalar('train/ep_budget_discount', 
                     episode_budget_discount, self.steps)
+                self.writer.add_scalar('train/budget_coeff', self.env_train.get_coeff(), self.steps)
                 if self.verbose >= 2:
                     print('Episode: {:<4}  Episode steps: {:<4} Return: {:<5.1f}'.format(
                         self.episodes, episode_steps, episode_return))
+                budget_estimator.append(episode_budget_discount)
                 episode_return = 0
                 episode_budget = 0
                 episode_steps = 0

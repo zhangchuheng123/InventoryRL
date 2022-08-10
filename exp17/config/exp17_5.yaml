@@ -7,10 +7,10 @@ basic:
 algo:
   num_steps: 5000000    # 5M
   batch_size: 64
-  lr: 0.0003                    
+  lr: 0.0003                
   memory_size: 300000   # 300k
   multi_step: 1
-  target_entropy_ratio: 0.98    
+  target_entropy_ratio: 0.98  
   target_update_interval: 8000
   use_per: False
   use_dueling: False
@@ -28,6 +28,8 @@ algo:
   gamma: 0.95
   use_basestock_wrapper: False
   use_const_state: False
+  budget_estimation_episodes: 100
+  budget_dual_stepsize: 0.1
 
 # Chenyi provides this configuration
 env:
@@ -51,7 +53,7 @@ env:
   holding_cost:
     - 1
   lost_sale_cost: 
-    - 10
+    - 3             # Initial lost sale
   fixed_order_cost:
     - 3
   perish_cost:
@@ -62,4 +64,6 @@ env:
   action_space_size: 10
   demand_type: uniform
   max_demand: 10
+  # perished_quantity, lost_quantity
   budget: lost_quantity
+  target_budget_discount: 5
