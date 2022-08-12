@@ -377,7 +377,7 @@ class BaseAgent(ABC):
         episode_steps = 0
         episode_actions = []
 
-        budget_estimator = deque(maxlen=self.config.algo.budget_estimation_episodes)
+        budget_estimator = []
 
         for steps in trange(self.num_steps, desc='Train'):
 
@@ -423,16 +423,15 @@ class BaseAgent(ABC):
                 state_sum = next_state_sum
 
             # Update budget coeff
-            if self.steps % self.config.algo.budget_estimation_episodes == 0 \
+            if len(budget_estimator) >= self.config.algo.budget_estimation_episodes \
                 and self.steps >= self.start_steps:
-
-                pdb.set_trace()
 
                 estimated_budget = np.mean(budget_estimator)
                 coeff = self.env_train.get_coeff()
                 coeff = max(coeff + (estimated_budget - self.config.env.target_budget_discount) \
                      * self.config.algo.budget_dual_stepsize, 0)
                 self.env_train.set_coeff(coeff)
+                budget_estimator = []
 
             # Episodic statistics
             if (self.num_parallel_envs == 1 and done) or \
@@ -528,6 +527,119 @@ class BaseAgent(ABC):
             self.writer.add_scalar(
                 'stats/entropy', entropies.detach().mean().item(),
                 self.steps)
+
+    def debug_explore(self):
+
+        num_episodes = 0
+        num_steps = 0
+        total_return = 0
+        total_budget = 0
+        total_return_discount = 0
+        total_budget_discount = 0
+        total_actions = []
+
+        while True:
+            state = self.env_valid.reset()
+            state_sum = np.sum(state)
+            state = self._normalize_state(state).flatten()
+            episode_steps = 0
+            episode_return = 0
+            episode_budget = 0
+            episode_return_discount = 0
+            episode_budget_discount = 0
+            done = False
+            while not done:
+                if self.config.algo.use_const_state:
+                    action = self.exploit(self.const_state)
+                else:
+                    action = self.explore(state)
+                if self.config.algo.use_basestock_wrapper:
+                    action = self._basestock_wrapper(action, state_sum)
+                total_actions.append(action)
+                next_state, reward, done, info = self.env_valid.step(action)
+                next_state_sum = np.sum(next_state)
+                next_state = self._normalize_state(next_state).flatten()
+                num_steps += 1
+                episode_return += reward
+                episode_budget += info[-1][self.config.env.budget]
+                episode_return_discount += reward * self.gamma ** episode_steps
+                episode_budget_discount += info[-1][self.config.env.budget] * self.gamma ** episode_steps
+                episode_steps += 1
+                state = next_state
+                state_sum = next_state_sum
+
+            num_episodes += 1
+            total_return += episode_return
+            total_budget += episode_budget
+            total_return_discount += episode_return_discount
+            total_budget_discount += episode_budget_discount 
+
+            if num_steps > self.evaluate_steps:
+                break
+
+        mean_return = total_return / num_episodes
+        mean_budget = total_budget / num_episodes
+        mean_return_discount = total_return_discount / num_episodes
+        mean_budget_discount = total_budget_discount / num_episodes
+
+        return mean_budget_discount
+
+
+    def debug_exploit(self):
+
+        num_episodes = 0
+        num_steps = 0
+        total_return = 0
+        total_budget = 0
+        total_return_discount = 0
+        total_budget_discount = 0
+        total_actions = []
+
+        while True:
+            state = self.env_valid.reset()
+            state_sum = np.sum(state)
+            state = self._normalize_state(state).flatten()
+            episode_steps = 0
+            episode_return = 0
+            episode_budget = 0
+            episode_return_discount = 0
+            episode_budget_discount = 0
+            done = False
+            while not done:
+                if self.config.algo.use_const_state:
+                    action = self.exploit(self.const_state)
+                else:
+                    action = self.exploit(state)
+                if self.config.algo.use_basestock_wrapper:
+                    action = self._basestock_wrapper(action, state_sum)
+                total_actions.append(action)
+                next_state, reward, done, info = self.env_valid.step(action)
+                next_state_sum = np.sum(next_state)
+                next_state = self._normalize_state(next_state).flatten()
+                num_steps += 1
+                episode_return += reward
+                episode_budget += info[-1][self.config.env.budget]
+                episode_return_discount += reward * self.gamma ** episode_steps
+                episode_budget_discount += info[-1][self.config.env.budget] * self.gamma ** episode_steps
+                episode_steps += 1
+                state = next_state
+                state_sum = next_state_sum
+
+            num_episodes += 1
+            total_return += episode_return
+            total_budget += episode_budget
+            total_return_discount += episode_return_discount
+            total_budget_discount += episode_budget_discount 
+
+            if num_steps > self.evaluate_steps:
+                break
+
+        mean_return = total_return / num_episodes
+        mean_budget = total_budget / num_episodes
+        mean_return_discount = total_return_discount / num_episodes
+        mean_budget_discount = total_budget_discount / num_episodes
+
+        return mean_budget_discount
 
     def evaluate(self):
 
@@ -798,8 +910,11 @@ class SacdAgent(BaseAgent):
 
         # Intuitively, we increse alpha when entropy is less than target
         # entropy, vice versa.
+        target_entropy = self.target_entropy * \
+            (1 - (self.steps / self.num_parallel_envs / self.num_steps))
+        self.writer.add_scalar('stats/target_entropy', target_entropy, self.steps)
         entropy_loss = - torch.mean(
-            self.log_alpha * (self.target_entropy - entropies)
+            self.log_alpha * (target_entropy - entropies)
             * weights)
         return entropy_loss
 
