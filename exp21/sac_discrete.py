@@ -440,7 +440,10 @@ class BaseAgent(ABC):
 
                 self.episodes += self.num_parallel_envs 
                 episode_steps /= self.num_parallel_envs
+                episode_budget /= self.num_parallel_envs
+                episode_return /= self.num_parallel_envs
                 episode_return_discount /= self.num_parallel_envs
+                episode_budget_discount /= self.num_parallel_envs
                 self.writer.add_scalar('train/ep_return', episode_return, self.steps)
                 self.writer.add_scalar('train/ep_budget', episode_budget, self.steps)
                 self.writer.add_scalar('train/ep_length', episode_steps, self.steps)
@@ -523,118 +526,6 @@ class BaseAgent(ABC):
                 'stats/entropy', entropies.detach().mean().item(),
                 self.steps)
 
-    def debug_explore(self):
-
-        num_episodes = 0
-        num_steps = 0
-        total_return = 0
-        total_budget = 0
-        total_return_discount = 0
-        total_budget_discount = 0
-        total_actions = []
-
-        while True:
-            state = self.env_valid.reset()
-            state_sum = np.sum(state)
-            state = self._normalize_state(state).flatten()
-            episode_steps = 0
-            episode_return = 0
-            episode_budget = 0
-            episode_return_discount = 0
-            episode_budget_discount = 0
-            done = False
-            while not done:
-                if self.config.algo.use_const_state:
-                    action = self.exploit(self.const_state)
-                else:
-                    action = self.explore(state)
-                if self.config.algo.use_basestock_wrapper:
-                    action = self._basestock_wrapper(action, state_sum)
-                total_actions.append(action)
-                next_state, reward, done, info = self.env_valid.step(action)
-                next_state_sum = np.sum(next_state)
-                next_state = self._normalize_state(next_state).flatten()
-                num_steps += 1
-                episode_return += reward
-                episode_budget += info[-1][self.config.env.budget]
-                episode_return_discount += reward * self.gamma ** episode_steps
-                episode_budget_discount += info[-1][self.config.env.budget] * self.gamma ** episode_steps
-                episode_steps += 1
-                state = next_state
-                state_sum = next_state_sum
-
-            num_episodes += 1
-            total_return += episode_return
-            total_budget += episode_budget
-            total_return_discount += episode_return_discount
-            total_budget_discount += episode_budget_discount 
-
-            if num_steps > self.evaluate_steps:
-                break
-
-        mean_return = total_return / num_episodes
-        mean_budget = total_budget / num_episodes
-        mean_return_discount = total_return_discount / num_episodes
-        mean_budget_discount = total_budget_discount / num_episodes
-
-        return mean_budget_discount
-
-    def debug_exploit(self):
-
-        num_episodes = 0
-        num_steps = 0
-        total_return = 0
-        total_budget = 0
-        total_return_discount = 0
-        total_budget_discount = 0
-        total_actions = []
-
-        while True:
-            state = self.env_valid.reset()
-            state_sum = np.sum(state)
-            state = self._normalize_state(state).flatten()
-            episode_steps = 0
-            episode_return = 0
-            episode_budget = 0
-            episode_return_discount = 0
-            episode_budget_discount = 0
-            done = False
-            while not done:
-                if self.config.algo.use_const_state:
-                    action = self.exploit(self.const_state)
-                else:
-                    action = self.exploit(state)
-                if self.config.algo.use_basestock_wrapper:
-                    action = self._basestock_wrapper(action, state_sum)
-                total_actions.append(action)
-                next_state, reward, done, info = self.env_valid.step(action)
-                next_state_sum = np.sum(next_state)
-                next_state = self._normalize_state(next_state).flatten()
-                num_steps += 1
-                episode_return += reward
-                episode_budget += info[-1][self.config.env.budget]
-                episode_return_discount += reward * self.gamma ** episode_steps
-                episode_budget_discount += info[-1][self.config.env.budget] * self.gamma ** episode_steps
-                episode_steps += 1
-                state = next_state
-                state_sum = next_state_sum
-
-            num_episodes += 1
-            total_return += episode_return
-            total_budget += episode_budget
-            total_return_discount += episode_return_discount
-            total_budget_discount += episode_budget_discount 
-
-            if num_steps > self.evaluate_steps:
-                break
-
-        mean_return = total_return / num_episodes
-        mean_budget = total_budget / num_episodes
-        mean_return_discount = total_return_discount / num_episodes
-        mean_budget_discount = total_budget_discount / num_episodes
-
-        return mean_budget_discount
-
     def evaluate(self):
 
         num_episodes = 0
@@ -675,7 +566,7 @@ class BaseAgent(ABC):
                 state = next_state
                 state_sum = next_state_sum
 
-            num_episodes += 1
+            num_episodes += self.num_parallel_envs
             total_return += episode_return
             total_budget += episode_budget
             total_return_discount += episode_return_discount

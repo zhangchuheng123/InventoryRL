@@ -70,6 +70,7 @@ class BasestockAgent(object):
 
         self.gamma = self.config.algo.gamma
         self.evaluate_steps = self.config.algo.evaluate_steps
+        self.num_parallel_envs = self.config.env.num_parallel_envs
 
     @staticmethod
     def set_seed(seed=1234):
@@ -86,8 +87,11 @@ class BasestockAgent(object):
         pd.DataFrame(record).to_csv(os.path.join(self.record_dir, 'result.csv'))
 
     def policy(self, basestock_level, state):
-        action = basestock_level - np.sum(state)
-        action = np.clip(action, 0, self.config.env.action_space_size - 1)
+        if self.num_parallel_envs > 1:
+            pdb.set_trace()
+        else:
+            action = basestock_level - np.sum(state)
+            action = np.clip(action, 0, self.config.env.action_space_size - 1)
         return action
 
     def evaluate_single(self, basestock_level):
@@ -95,6 +99,7 @@ class BasestockAgent(object):
         num_episodes = 0
         num_steps = 0
         total_return = 0
+        total_budget = 0
         total_return_discount = 0
         total_budget_discount = 0
 
@@ -102,6 +107,7 @@ class BasestockAgent(object):
             state = self.env_valid.reset()
             episode_steps = 0
             episode_return = 0
+            episode_budget = 0
             episode_return_discount = 0
             episode_budget_discount = 0
             done = False
@@ -109,14 +115,16 @@ class BasestockAgent(object):
                 action = self.policy(basestock_level, state)
                 next_state, reward, done, info = self.env_valid.step(action)
                 num_steps += 1
-                episode_return += reward
-                episode_return_discount += reward * self.gamma ** episode_steps
+                episode_return += np.sum(reward)
+                episode_budget += info[-1][self.config.env.budget]
+                episode_return_discount += np.sum(reward) * self.gamma ** episode_steps
                 episode_budget_discount += info[-1][self.config.env.budget] * self.gamma ** episode_steps
                 episode_steps += 1
                 state = next_state
 
-            num_episodes += 1
+            num_episodes += self.num_parallel_envs
             total_return += episode_return
+            total_budget += episode_budget
             total_return_discount += episode_return_discount
             total_budget_discount += episode_budget_discount 
 
@@ -124,12 +132,14 @@ class BasestockAgent(object):
                 break
 
         mean_return = total_return / num_episodes
+        mean_budget = total_budget / num_episodes
         mean_return_discount = total_return_discount / num_episodes
         mean_budget_discount = total_budget_discount / num_episodes
 
         return dict(
             basestock_level=basestock_level,
             mean_return=mean_return,
+            mean_budget=mean_budget,
             mean_return_discount=mean_return_discount,
             mean_budget_discount=mean_budget_discount,
             num_episodes=num_episodes)
