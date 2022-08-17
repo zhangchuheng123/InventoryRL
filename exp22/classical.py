@@ -30,6 +30,7 @@ import scipy.optimize as sciopt
 from itertools import count
 from itertools import product
 from sklearn.preprocessing import StandardScaler
+from scipy.optimize import linprog
 from os.path import join as joindir
 from munch import DefaultMunch
 from tqdm import trange
@@ -45,7 +46,7 @@ from env import make_env, VectorEnv
 from memory import LazyMultiStepMemory, LazyPrioritizedMultiStepMemory
 
 
-class BasestockAgent(object):
+class ClassicalAgeng(object):
 
     def __init__(self, args):
 
@@ -56,11 +57,12 @@ class BasestockAgent(object):
         self.config = DefaultMunch.fromDict(config)
         self.env_valid = make_env(self.config.env, etype='valid')
         self.env_valid.set_coeff(0)
+        self.method = args.method
 
         self.seed = self.config.basic.seed
         self.set_seed(self.seed)
 
-        self.exp_name = 'basestock_' + args.config.split('/')[-1].rstrip('.yaml')
+        self.exp_name = self.method + '_' + args.config.split('/')[-1].rstrip('.yaml')
         self.exp_time = datetime.now().strftime("%Y%m%d-%H%M")
         self.log_dir = os.path.join('logs', 
             '{name}-{seed}-{time}'.format(name=self.exp_name, 
@@ -81,21 +83,49 @@ class BasestockAgent(object):
 
     def evaluate(self):
         record = []
-        for basestock_level in range(self.config.env.action_space_size * 2):
-            record.append(self.evaluate_single(basestock_level))
-            print(record[-1])
-        pd.DataFrame(record).to_csv(os.path.join(self.record_dir, 'result.csv'))
+        for basestock_level in range(self.config.env.action_space_size * 3):
+            if self.method == 'basestock':
+                rp_list = [basestock_level]
+            elif self.method == 'ss_policy':
+                rp_list = range(basestock_level)
+            for reorder_point in rp_list:
+                record.append(self.evaluate_single(basestock_level, reorder_point))
+                print(record[-1])
+        record = pd.DataFrame(record)
+        record.to_csv(os.path.join(self.record_dir, 'result.csv'))
 
-    def policy(self, basestock_level, state):
+        stats = self.optimize(record)
+        stats = pd.DataFrame(stats)
+        stats.to_csv(os.path.join(self.record_dir, 'stats.csv'))
+
+    def optimize(self, data):
+
+        c = - data['mean_return_discount'].values
+        A = data['mean_budget_discount'].values.reshape(1, -1)
+        ones = np.ones(A.shape)
+
+        record = []
+        for B in np.linspace(A.min(), A.max(), 100):
+            res = linprog(c, A, B, ones, 1)
+            budget = (A @ res.x)[0]
+            cost = c @ res.x
+
+            record.append({'budget': budget, 'cost': cost})
+
+        return record
+
+    def policy(self, basestock_level, reorder_point, state):
         if self.num_parallel_envs > 1:
             action = basestock_level - np.sum(state, 1)
+            action[action < reorder_point] = 0
             action = np.clip(action, 0, self.config.env.action_space_size - 1)
         else:
             action = basestock_level - np.sum(state)
+            action[action < reorder_point] = 0
             action = np.clip(action, 0, self.config.env.action_space_size - 1)
         return action
 
-    def evaluate_single(self, basestock_level):
+    def evaluate_single(self, basestock_level, reorder_point):
 
         num_episodes = 0
         num_steps = 0
@@ -113,7 +143,7 @@ class BasestockAgent(object):
             episode_budget_discount = 0
             done = False
             while not done:
-                action = self.policy(basestock_level, state)
+                action = self.policy(basestock_level, reorder_point, state)
                 next_state, reward, done, info = self.env_valid.step(action)
                 num_steps += 1
                 episode_return += np.sum(reward)
@@ -139,6 +169,7 @@ class BasestockAgent(object):
 
         return dict(
             basestock_level=basestock_level,
+            reorder_point=reorder_point,
             mean_return=mean_return,
             mean_budget=mean_budget,
             mean_return_discount=mean_return_discount,
@@ -169,7 +200,7 @@ class BasestockAgent(object):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, default=os.path.join('config', 'default.yaml'))
+    parser.add_argument('--method', type=str, default='basestock')
     args = parser.parse_args()
-    agent = BasestockAgent(args)
-    # agent.evaluate_single_ep(9)
+    agent = ClassicalAgeng(args)
     agent.evaluate()

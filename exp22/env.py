@@ -2,14 +2,17 @@ import numpy as np
 import pandas as pd
 from gym import spaces
 from munch import DefaultMunch
+from concurrent import futures
 import argparse
 import yaml
+import time
 import pdb
 import os
 
 class MultipleSKUEnv(object):
     
     def __init__(self, 
+        parallel = True,
         num_product = 2,                    # I
         product_lifetime = [4, 4],          # P
         max_lead_time = [3, 3],             # L
@@ -28,6 +31,7 @@ class MultipleSKUEnv(object):
         self.budget = budget
     
         self.env = InventoryEnv(
+            parallel=parallel,
             num_product=num_product, 
             product_lifetime=product_lifetime,
             max_lead_time=max_lead_time,
@@ -176,6 +180,7 @@ class SingleSKUEnv(object):
 class InventoryEnv(object):
     
     def __init__(self,
+        parallel = True,
         num_product = 2,                    # I
         product_lifetime = [3, 3],          # P
         max_lead_time = [3, 3],             # L
@@ -205,6 +210,8 @@ class InventoryEnv(object):
         self.demand_func = demand_func
 
         self.products = [None] * self.num_product
+
+        self.parallel = parallel and (self.num_product > 1)
     
     def reset(self):
 
@@ -215,8 +222,14 @@ class InventoryEnv(object):
                 Product(self.product_lifetime[i], self.max_lead_time[i], self.arrival_prob)
         states = [self.products[i].get_state() for i in range(self.num_product)]
         return np.array(states)
-    
+
     def step(self, action):
+        if self.parallel:
+            return self.step_parallel(action)
+        else:
+            return self.step_sequential(action)
+
+    def step_sequential(self, action):
 
         self.counter += 1
 
@@ -244,8 +257,45 @@ class InventoryEnv(object):
             done = False
 
         info.append(dict(perished_quantity=perished_quantity, lost_quantity=lost_quantity))
+        states = np.array(states)
 
-        return np.array(states), rewards, done, info
+        return states, rewards, done, info
+    
+    def step_parallel(self, action):
+
+        self.counter += 1
+
+        demands = self.demand_func()
+        rewards = []
+        states = []
+        infos = []
+        perished_quantity = 0
+        lost_quantity = 0
+
+        with futures.ProcessPoolExecutor() as pool:
+            for info, reward, state in pool.map(_update_single, 
+                self.products, action, demands, np.arange(self.num_product), 
+                self.holding_cost, self.lost_sale_cost, 
+                self.fixed_order_cost, self.perish_cost):
+
+                infos.append(info)
+                perished_quantity += info['perished_quantity']
+                lost_quantity += info['lost_sales']
+                rewards.append(reward)
+                states.append(state)
+                rewards.append(reward)
+
+        states = np.array(states)
+        rewards = np.array(rewards)
+
+        if self.counter >= self.time_limit:
+            done = True
+        else:
+            done = False
+
+        infos.append(dict(perished_quantity=perished_quantity, lost_quantity=lost_quantity))
+
+        return states, rewards, done, infos
 
 
 class Product(object):
@@ -380,6 +430,7 @@ def make_env(config, etype):
         np.random.seed(config.seed)
         n = config.num_product
         return MultipleSKUEnv(
+            parallel = config.parallel,
             num_product = config.num_product,
             product_lifetime = config.product_lifetime * n,       
             max_lead_time = config.max_lead_time * n,       
@@ -401,6 +452,23 @@ def make_env(config, etype):
             )
     else:
         raise NotImplementedError
+
+
+def _update_single(product, action, demand, skuno,
+    holding_cost, lost_sale_cost, fixed_order_cost, perish_cost):
+
+    info = product.step(action, demand)
+    info.update({'SKUno': skuno})
+
+    reward = 0
+    reward -= holding_cost * info['total_inventory']
+    reward -= lost_sale_cost * info['lost_sales']
+    reward -= fixed_order_cost * info['place_order']
+    reward -= perish_cost * info['perished_quantity']
+
+    state = product.get_state()
+
+    return info, reward, state
 
 
 if __name__ == '__main__':

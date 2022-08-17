@@ -69,4 +69,5 @@ env:
   max_demand: 10
   # perished_quantity, lost_quantity
   budget: lost_quantity
-  target_budget_discount: 400
+  target_budget_discount: 300
+  parallel: True
