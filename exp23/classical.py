@@ -46,7 +46,7 @@ from env import make_env, VectorEnv
 from memory import LazyMultiStepMemory, LazyPrioritizedMultiStepMemory
 
 
-class ClassicalAgeng(object):
+class ClassicalAgent(object):
 
     def __init__(self, args):
 
@@ -202,5 +202,5 @@ if __name__ == '__main__':
     parser.add_argument('--config', type=str, default=os.path.join('config', 'default.yaml'))
     parser.add_argument('--method', type=str, default='basestock')
     args = parser.parse_args()
-    agent = ClassicalAgeng(args)
+    agent = ClassicalAgent(args)
     agent.evaluate()
