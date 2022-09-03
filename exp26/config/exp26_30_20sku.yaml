@@ -24,13 +24,14 @@ algo:
   log_interval: 20
   eval_interval: 10000
   no_term: True
-  evaluate_steps: 10000
+  evaluate_steps: 60000
   gamma: 0.95
   use_basestock_wrapper: False
   use_const_state: False
   budget_estimation_episodes: 20
   budget_dual_stepsize: 0.1
 
+# Chenyi provides this configuration
 env:
   num_parallel_envs: 20   # This should equal num_product
   name: MultipleSKUEnv
@@ -68,5 +69,4 @@ env:
   max_demand: 10
   # perished_quantity, lost_quantity
   budget: lost_quantity
-  target_budget_discount: 40
-  parallel: True
+  target_budget_discount: 30
