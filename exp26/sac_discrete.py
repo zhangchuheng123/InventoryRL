@@ -472,7 +472,7 @@ class BaseAgent(ABC):
                 self.update_target()
 
             if self.steps % self.eval_interval == 0:
-                # self.evaluate()
+                self.evaluate()
                 self.save_models(os.path.join(self.model_dir, 'final'))
 
     def learn(self):

@@ -24,7 +24,7 @@ algo:
   log_interval: 20
   eval_interval: 10000
   no_term: True
-  evaluate_steps: 60000
+  evaluate_steps: 6000
   gamma: 0.95
   use_basestock_wrapper: False
   use_const_state: False
