@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=0 python classical.py --config config/exp28_eval.yaml &
