@@ -11,7 +11,7 @@ import pdb
 import os 
 
 
-def single_run(config, P_plus_L):
+def single_run(P_plus_L, config):
 
     config = config.copy()
 
