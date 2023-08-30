@@ -26,8 +26,8 @@ if __name__ == '__main__':
         max_lead_time = P_plus_L - product_lifetime
         arrival_prob = list(np.linspace(0, 1, max_lead_time + 2)[1:])
 
-        config.env.product_lifetime = product_lifetime
-        config.env.max_lead_time = max_lead_time
+        config.env.product_lifetime = [product_lifetime]
+        config.env.max_lead_time = [max_lead_time]
         config.env.arrival_prob = arrival_prob
 
         config.config_name = "ppl{}_sacd_ours".format(P_plus_L)
