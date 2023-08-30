@@ -616,9 +616,9 @@ class BaseAgent(ABC):
 
 class SacdAgent(BaseAgent):
 
-    def __init__(self, args):
+    def __init__(self, args=None, config=None):
 
-        super().__init__(args)
+        super().__init__(args=args, config=config)
 
         # Define networks.
         self.policy = CategoricalPolicy(
