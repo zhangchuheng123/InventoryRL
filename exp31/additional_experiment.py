@@ -1,5 +1,5 @@
-from .classical import ClassicalAgent
-from .sac_discrete import SacdAgent
+from classical import ClassicalAgent
+from sac_discrete import SacdAgent
 from munch import DefaultMunch
 from tqdm import trange
 import numpy as np
