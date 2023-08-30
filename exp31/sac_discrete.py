@@ -188,15 +188,22 @@ class CategoricalPolicy(BaseNetwork):
 
 class BaseAgent(ABC):
 
-    def __init__(self, args):
+    def __init__(self, args=None, config=None):
 
         super().__init__()
 
-        # Read config
-        with open(args.config) as f:
-            config = yaml.load(f, Loader=yaml.SafeLoader)
+        if args is not None:
+            # Read config
+            with open(args.config) as f:
+                config = yaml.load(f, Loader=yaml.SafeLoader)
 
-        self.config = DefaultMunch.fromDict(config)
+            self.config = DefaultMunch.fromDict(config)
+            self.config_name = args.config.split('/')[-1].rstrip('.yaml')
+        elif config is not None:
+            self.config = config
+            self.config_name = config.config_name
+        else:
+            raise NotImplementedError
 
         # Set up
         self.seed = self.config.basic.seed
@@ -204,7 +211,7 @@ class BaseAgent(ABC):
         self.set_backend()
 
         # Directory
-        self.exp_name = args.config.split('/')[-1].rstrip('.yaml')
+        self.exp_name = self.config_name
         self.exp_time = datetime.now().strftime("%Y%m%d-%H%M")
         self.log_dir = os.path.join('logs', 
             '{name}-{seed}-{time}'.format(name=self.exp_name, 
@@ -824,6 +831,7 @@ class SacdAgent(BaseAgent):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, default=os.path.join('config', 'default.yaml'))
+
     args = parser.parse_args()
     agent = SacdAgent(args)
     agent.run()

@@ -48,21 +48,30 @@ from memory import LazyMultiStepMemory, LazyPrioritizedMultiStepMemory
 
 class ClassicalAgent(object):
 
-    def __init__(self, args):
+    def __init__(self, args=None, config=None):
 
-        # Read config
-        with open(args.config) as f:
-            config = yaml.load(f, Loader=yaml.SafeLoader)
+        if args is not None:
+            # Read config
+            with open(args.config) as f:
+                config = yaml.load(f, Loader=yaml.SafeLoader)
 
-        self.config = DefaultMunch.fromDict(config)
+            self.config = DefaultMunch.fromDict(config)
+            self.method = args.method
+            self.config_name = args.config.split('/')[-1].rstrip('.yaml')
+        elif config is not None:
+            self.config = config
+            self.method = config.method
+            self.config_name = config.config_name
+        else:
+            raise NotImplementedError
+
         self.env_valid = make_env(self.config.env, etype='valid')
         self.env_valid.set_coeff(0)
-        self.method = args.method
 
         self.seed = self.config.basic.seed
         self.set_seed(self.seed)
 
-        self.exp_name = self.method + '_' + args.config.split('/')[-1].rstrip('.yaml')
+        self.exp_name = self.method + '_' + self.config_name
         self.exp_time = datetime.now().strftime("%Y%m%d-%H%M")
         self.log_dir = os.path.join('logs', 
             '{name}-{seed}-{time}'.format(name=self.exp_name, 

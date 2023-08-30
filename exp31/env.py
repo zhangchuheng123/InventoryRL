@@ -245,6 +245,9 @@ class InventoryEnv(object):
 
         info.append(dict(perished_quantity=perished_quantity, lost_quantity=lost_quantity))
 
+        # info is a list of length N+1
+        # first N elements for different products
+        # the last element for the summary
         return np.array(states), rewards, done, info
 
 

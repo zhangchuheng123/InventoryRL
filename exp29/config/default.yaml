@@ -32,12 +32,12 @@ algo:
   budget_dual_stepsize: 0.01
 
 env:
-  num_parallel_envs: 100        # This should equal to num_product
+  num_parallel_envs: 100        # This should equal to num_product, i.e., N
   name: MultipleSKUEnv
   state_dtype: float32
   encoder: MLP
   seed: 0
-  num_product: 100              # The number of SKUs
+  num_product: 100              # The number of SKUs, i.e., N
   product_lifetime: 
     - 5
   max_lead_time: 
