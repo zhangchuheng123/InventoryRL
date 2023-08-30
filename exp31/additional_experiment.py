@@ -52,4 +52,4 @@ if __name__ == '__main__':
 
     single_run_partial = partial(single_run, config=config)
     pool = ProcessingPool(4)
-    pool.map(single_run_partial, range(2, 14))
+    pool.map(single_run_partial, range(2, 14, 2))
