@@ -17,9 +17,8 @@ def main(dir_log='logs/'):
 
 			else:
 
-				pdb.set_trace()
 				target_path = os.path.join(dir_log, target_path, 'summary')
-				target_file = os.listdir(target_path)
+				target_file = [item for item in os.listdir(target_path) if 'tfevents' in item][0]
 				target_file = os.path.join(target_path, target_file)
 
 				ea = event_accumulator.EventAccumulator(target_file, size_guidance={
