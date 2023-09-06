@@ -17,6 +17,7 @@ def main(dir_log='logs/'):
 
 			else:
 
+				pdb.set_trace()
 				target_path = os.path.join(dir_log, target_path, 'summary')
 				target_file = os.listdir(target_path)
 				target_file = os.path.join(target_path, target_file)
