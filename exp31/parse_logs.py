@@ -19,6 +19,8 @@ def process_ss(log_dir, output_dir, budget=30):
 	for ppl in [2, 4, 6]:
 		for algo in ['ss_policy']:
 
+			print('Processing ppl (P+L): {} algo: {}'.format(ppl, algo))
+
 			target_path = [item for item in paths if 'ppl{}'.format(ppl) in item and algo in item][0]
 			target_file = os.path.join(log_dir, target_path, 'record', 'stats.csv')
 
@@ -35,6 +37,8 @@ def process_sacd(log_dir, output_dir):
 	for ppl in [2, 4, 6]:
 		for algo in ['sacd_ours', 'sacd_bench']:
 
+			print('Processing ppl (P+L): {} algo: {}'.format(ppl, algo))
+
 			target_path = [item for item in paths if 'ppl{}'.format(ppl) in item and algo in item][0]
 			target_path = os.path.join(log_dir, target_path, 'summary')
 			target_file = [item for item in os.listdir(target_path) if 'tfevents' in item][0]
@@ -48,8 +52,6 @@ def process_sacd(log_dir, output_dir):
 				event_accumulator.HISTOGRAMS: 1})
 			# This could be very slow
 			ea.Reload()
-
-			pdb.set_trace()
 
 			target_output_dir = os.path.join(output_dir, 'ppl{}_{}'.format(ppl, algo))
 			os.makedirs(target_output_dir, exist_ok=True)
