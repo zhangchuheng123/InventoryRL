@@ -31,3 +31,6 @@ def main(dir_log='logs/'):
 				pdb.set_trace()
 
 				df = pd.DataFrame(ea.Scalars('eval'))
+
+if __name__ == '__main__':
+	main()
