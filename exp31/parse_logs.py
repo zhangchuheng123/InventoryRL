@@ -26,7 +26,7 @@ def process_ss(log_dir, output_dir, budget=30):
 			f = interpolate.interp1d(df['budget'].values, df['cost'].values)
 			record.append(dict(ppl=ppl, budget=budget, cost=f(budget)))
 
-	pd.DataFrame(record).to_csv(os.path.join(target_output_dir, 'ss_policy.csv'))
+	pd.DataFrame(record).to_csv(os.path.join(output_dir, 'ss_policy.csv'))
 
 def process_sacd(log_dir, output_dir):
 
