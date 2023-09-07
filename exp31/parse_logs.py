@@ -37,12 +37,12 @@ def process_sacd(log_dir, output_dir):
 	for ppl in [2, 4, 6]:
 		for algo in ['sacd_ours', 'sacd_bench']:
 
-			print('Processing ppl (P+L): {} algo: {}'.format(ppl, algo))
-
 			target_path = [item for item in paths if 'ppl{}'.format(ppl) in item and algo in item][0]
 			target_path = os.path.join(log_dir, target_path, 'summary')
 			target_file = [item for item in os.listdir(target_path) if 'tfevents' in item][0]
 			target_file = os.path.join(target_path, target_file)
+
+			print('Processing ppl (P+L): {} algo: {} file: {}'.format(ppl, algo, target_file))
 
 			ea = event_accumulator.EventAccumulator(target_file, size_guidance={
 				event_accumulator.COMPRESSED_HISTOGRAMS: 500,
@@ -50,6 +50,7 @@ def process_sacd(log_dir, output_dir):
 				event_accumulator.AUDIO: 4,
 				event_accumulator.SCALARS: 0,
 				event_accumulator.HISTOGRAMS: 1})
+
 			# This could be very slow
 			ea.Reload()
 
