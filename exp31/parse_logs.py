@@ -40,7 +40,11 @@ def process_sacd(log_dir, output_dir):
     for ppl in range(2, 14, 2):
         for algo in ['sacd_ours', 'sacd_bench']:
 
-            target_path = [item for item in paths if 'ppl{}'.format(ppl) in item and algo in item][0]
+            target_path = [item for item in paths if 'ppl{}'.format(ppl) in item and algo in item]
+            if len(target_path) > 0:
+                target_path = target_path[0]
+            else:
+                continue
             target_path = os.path.join(log_dir, target_path, 'summary')
             target_file = [item for item in os.listdir(target_path) if 'tfevents' in item][0]
             target_file = os.path.join(target_path, target_file)
