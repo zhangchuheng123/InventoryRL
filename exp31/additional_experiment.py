@@ -35,7 +35,7 @@ def single_run(P_plus_L, config):
     agent.run()
 
     config.config_name = "ppl{}_sacd_bench".format(P_plus_L)
-    config.budget_estimation_episodes = 1000
+    config.budget_estimation_episodes = 500
     config.seed = 9000
     agent = SacdAgent(config=config)
     agent.run()
