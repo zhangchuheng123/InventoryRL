@@ -27,11 +27,11 @@ def single_run(hop, config):
     agent = ClassicalAgent(config=config)
     agent.evaluate()
 
-    config.config_name = f'h{holding_cost}_o{fixed_order_cost}_p{perish_cost}_ours'
-    config.budget_estimation_episodes = 20
-    config.seed = 8000
-    agent = SacdAgent(config=config)
-    agent.run()
+    # config.config_name = f'h{holding_cost}_o{fixed_order_cost}_p{perish_cost}_ours'
+    # config.budget_estimation_episodes = 20
+    # config.seed = 8000
+    # agent = SacdAgent(config=config)
+    # agent.run()
 
 
 if __name__ == '__main__':
@@ -45,7 +45,7 @@ if __name__ == '__main__':
 
     config = DefaultMunch.fromDict(config)
 
-    exp_list = product([0.5, 1.5], [2, 4], [8, 12])
+    exp_list = product([0.5, 1.0, 1.5], [2, 3, 4], [8, 10, 12])
 
     single_run_partial = partial(single_run, config=config)
     pool = ProcessingPool(4)
