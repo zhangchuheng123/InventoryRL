@@ -722,7 +722,7 @@ class SacdAgent(BaseAgent):
         )
         wandb.init(
             project="inventory_rl", 
-            name=f"additional_l{self.config.algo.num_layers}",
+            name=self.config_name,
         )
 
     def normalize_phase(self):
