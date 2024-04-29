@@ -29,6 +29,7 @@ from sklearn.preprocessing import StandardScaler
 from os.path import join as joindir
 from munch import DefaultMunch
 from tqdm import trange
+import wandb
 import pickle
 import random
 import time
@@ -479,6 +480,19 @@ class BaseAgent(ABC):
                 self.writer.add_scalar('train/ep_budget_discount', 
                     episode_budget_discount, self.steps)
                 self.writer.add_scalar('train/budget_coeff', self.env_train.get_coeff(), self.steps)
+
+                log_dict = {
+                    'train/steps': self.steps,
+                    'train/ep_return': episode_return,
+                    'train/ep_budget': episode_budget,
+                    'train/ep_length': episode_steps,
+                    'train/ep_return_discount': episode_return_discount, 
+                    'train/ep_budget_discount': episode_budget_discount,
+                    'train/budget_coeff': self.env_train.get_coeff(),
+                }
+                wandb.log(log_dict)
+
+
                 if self.verbose >= 2:
                     print('Episode: {:<4}  Episode steps: {:<4} Return: {:<5.1f}'.format(
                         self.episodes, episode_steps, episode_return))
@@ -619,6 +633,15 @@ class BaseAgent(ABC):
         self.writer.add_scalar('eval/budget_discount', mean_budget_discount, self.steps)
         # self.writer.add_histogram('eval/actions', np.array(total_actions), self.steps)
 
+        log_dict = {
+            'eval/steps': self.steps,
+            'eval/return': mean_return,
+            'eval/budget': mean_budget,
+            'eval/return_discount': mean_return_discount, 
+            'eval/budget_discount': mean_budget_discount,
+        }
+        wandb.log(log_dict)
+
         if self.verbose >= 1:
             print('-' * 60)
             print(f'Num steps: {self.steps:<5}  '
@@ -692,6 +715,15 @@ class SacdAgent(BaseAgent):
 
         self.state_scaler = NDStandardScaler()
         self.reward_filter = ZFilter()
+
+        wandb.login(
+            host="https://microsoft-research.wandb.io",
+            key="local-fb872608a0ec758c86ab35d24eec1373fe2d9313",
+        )
+        wandb.init(
+            project="inventory_rl", 
+            name=f"additional_l{self.config.algo.num_layers}",
+        )
 
     def normalize_phase(self):
         acc_states = []
