@@ -38,4 +38,5 @@ if __name__ == '__main__':
 
     single_run_partial = partial(single_run, config=config)
     pool = ProcessingPool(5)
-    pool.map(single_run_partial, [(3, 32), (3, 64), (3, 128), (2, 64), (4, 64)])
+    # pool.map(single_run_partial, [(3, 32), (3, 64), (3, 128), (2, 64), (4, 64)])
+    pool.map(single_run_partial, [(1, 64), (2, 64), (3, 64)])

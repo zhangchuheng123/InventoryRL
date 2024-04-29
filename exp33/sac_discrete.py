@@ -56,7 +56,12 @@ class MLPBase(BaseNetwork):
 
         super(MLPBase, self).__init__()
 
-        if layers == 2:
+        if layers == 1:
+            self.net = nn.Sequential(
+                nn.Linear(num_channels, hidden),
+                nn.ReLU(),
+            ).apply(initialize_weights_he)
+        elif layers == 2:
             self.net = nn.Sequential(
                 nn.Linear(num_channels, hidden),
                 nn.ReLU(),
