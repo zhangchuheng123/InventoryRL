@@ -57,7 +57,7 @@ class MLPBase(BaseNetwork):
 
         super(MLPBase, self).__init__()
 
-        if layers == 1:
+        if layers <= 1:
             self.net = nn.Sequential(
                 nn.Linear(num_channels, hidden),
                 nn.ReLU(),
@@ -182,16 +182,29 @@ class CategoricalPolicy(BaseNetwork):
         hidden=32, layers=3, encoder='MLP'):
 
         super(CategoricalPolicy, self).__init__()
-        
-        if encoder == 'MLP':
+
+        if layers <= 0:
+            self.encoder = nn.Identity()
+        elif encoder == 'MLP':
             self.encoder = MLPBase(num_channels, hidden, layers)
         elif encoder == 'CNN':
             self.encoder = CNNBase(num_channels, hidden)
 
-        self.head = nn.Sequential(
-            nn.Linear(hidden, hidden),
-            nn.ReLU(inplace=True),
-            nn.Linear(hidden, num_actions))
+        if layers <= -1:
+            self.head = nn.Linear(num_channels, num_actions)
+        elif layers <= 0:
+            self.head = nn.Sequential(
+                nn.Linear(num_channels, hidden),
+                nn.ReLU(inplace=True),
+                nn.Linear(hidden, num_actions)
+            )
+
+        else:
+            self.head = nn.Sequential(
+                nn.Linear(hidden, hidden),
+                nn.ReLU(inplace=True),
+                nn.Linear(hidden, num_actions)
+            )
 
     def act(self, states):
         
@@ -203,7 +216,6 @@ class CategoricalPolicy(BaseNetwork):
     def sample(self, states):
 
         states = self.encoder(states)
-
         action_logits = self.head(states)
         action_dist = Categorical(logits=action_logits)
         actions = action_dist.sample().view(-1, 1).cpu().numpy()
