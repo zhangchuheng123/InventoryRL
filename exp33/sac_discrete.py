@@ -280,9 +280,6 @@ class BaseAgent(ABC):
         self.target_entropy_ratio = self.config.algo.target_entropy_ratio
         self.verbose = self.config.basic.verbose
 
-        import remote_pdb
-        remote_pdb.set_trace()
-
         # Create environments
         self.env_train = make_env(self.config.env.copy(), etype='train')
         self.env_valid = make_env(self.config.env.copy(), etype='valid')
