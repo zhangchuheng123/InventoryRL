@@ -22,9 +22,6 @@ def single_run(args, config):
 
     config.config_name = "l{}_h{}_sacd_ours".format(num_layers, hidden_size)
     config.seed = 8000
-    
-    import remote_pdb
-    remote_pdb.set_trace()
 
     agent = SacdAgent(config=config)
     agent.run()
