@@ -20,7 +20,7 @@ def single_run(args, config):
     config.algo.hidden_size = hidden_size
     config.algo.num_layers = num_layers
 
-    config.config_name = "l{}_h{}_sacd_ours".format(num_layers, hidden_size)``
+    config.config_name = "l{}_h{}_sacd_ours".format(num_layers, hidden_size)
     config.seed = 8000
 
     agent = SacdAgent(config=config)
