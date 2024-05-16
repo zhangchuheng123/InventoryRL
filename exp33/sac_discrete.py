@@ -198,7 +198,6 @@ class CategoricalPolicy(BaseNetwork):
                 nn.ReLU(inplace=True),
                 nn.Linear(hidden, num_actions)
             )
-
         else:
             self.head = nn.Sequential(
                 nn.Linear(hidden, hidden),
@@ -700,6 +699,8 @@ class SacdAgent(BaseAgent):
             hidden=self.config.algo.hidden_size,
             layers=self.config.algo.num_layers,
             encoder=self.config.env.encoder).to(device=self.device).eval()
+
+        pdb.set_trace()
 
         # Copy parameters of the learning network to the target network.
         self.target_critic.load_state_dict(self.online_critic.state_dict())
