@@ -129,8 +129,8 @@ class QNetwork(BaseNetwork):
 
         if not use_dueling:
             self.head = nn.Sequential(
-                nn.Linear(hidden, hidden),
-                nn.ReLU(inplace=True),
+                # nn.Linear(hidden, hidden),
+                # nn.ReLU(inplace=True),
                 nn.Linear(hidden, num_actions))
         else:
             self.a_head = nn.Sequential(
@@ -699,8 +699,6 @@ class SacdAgent(BaseAgent):
             hidden=self.config.algo.hidden_size,
             layers=self.config.algo.num_layers,
             encoder=self.config.env.encoder).to(device=self.device).eval()
-
-        pdb.set_trace()
 
         # Copy parameters of the learning network to the target network.
         self.target_critic.load_state_dict(self.online_critic.state_dict())
