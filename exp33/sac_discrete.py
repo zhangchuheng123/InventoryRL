@@ -122,25 +122,30 @@ class QNetwork(BaseNetwork):
 
         super(BaseNetwork, self).__init__()
 
-        if encoder == 'MLP':
-            self.encoder = MLPBase(num_channels, hidden, layers)
-        elif encoder == 'CNN':
-            self.encoder = CNNBase(num_channels, hidden)
+        debug = True 
+        if debug:
+            self.encoder = nn.Identity()
+            self.head = nn.Linear(num_channels, num_actions)
 
-        if not use_dueling:
-            self.head = nn.Sequential(
-                # nn.Linear(hidden, hidden),
-                # nn.ReLU(inplace=True),
-                nn.Linear(hidden, num_actions))
-        else:
-            self.a_head = nn.Sequential(
-                nn.Linear(hidden, hidden),
-                nn.ReLU(inplace=True),
-                nn.Linear(hidden, num_actions))
-            self.v_head = nn.Sequential(
-                nn.Linear(hidden, hidden),
-                nn.ReLU(inplace=True),
-                nn.Linear(hidden, 1))
+        # if encoder == 'MLP':
+        #     self.encoder = MLPBase(num_channels, hidden, layers)
+        # elif encoder == 'CNN':
+        #     self.encoder = CNNBase(num_channels, hidden)
+
+        # if not use_dueling:
+        #     self.head = nn.Sequential(
+        #         nn.Linear(hidden, hidden),
+        #         nn.ReLU(inplace=True),
+        #         nn.Linear(hidden, num_actions))
+        # else:
+        #     self.a_head = nn.Sequential(
+        #         nn.Linear(hidden, hidden),
+        #         nn.ReLU(inplace=True),
+        #         nn.Linear(hidden, num_actions))
+        #     self.v_head = nn.Sequential(
+        #         nn.Linear(hidden, hidden),
+        #         nn.ReLU(inplace=True),
+        #         nn.Linear(hidden, 1))
 
         self.use_dueling = use_dueling
 
@@ -543,6 +548,8 @@ class BaseAgent(ABC):
             self.calc_critic_loss(batch, weights)
         policy_loss, entropies = self.calc_policy_loss(batch, weights)
         entropy_loss = self.calc_entropy_loss(entropies, weights)
+
+        pdb.set_trace()
 
         update_params(self.q1_optim, q1_loss)
         update_params(self.q2_optim, q2_loss)
