@@ -549,8 +549,6 @@ class BaseAgent(ABC):
         policy_loss, entropies = self.calc_policy_loss(batch, weights)
         entropy_loss = self.calc_entropy_loss(entropies, weights)
 
-        pdb.set_trace()
-
         update_params(self.q1_optim, q1_loss)
         update_params(self.q2_optim, q2_loss)
         update_params(self.policy_optim, policy_loss)
@@ -584,6 +582,19 @@ class BaseAgent(ABC):
             self.writer.add_scalar(
                 'stats/entropy', entropies.detach().mean().item(),
                 self.steps)
+
+            log_dict = {
+                'train/steps': self.steps,
+                'loss/Q1': q1_loss.detach().item(),
+                'loss/Q2': q2_loss.detach().item(),
+                'loss/policy': policy_loss.detach().item(),
+                'loss/alpha': entropy_loss.detach().item(),
+                'stats/alpha': self.alpha.detach().item(), 
+                'stats/mean_Q1': mean_q1,
+                'stats/mean_Q2': mean_q2,
+                'stats/entropy': entropies.detach().mean().item(),
+            }
+            wandb.log(log_dict)
 
     def evaluate(self):
 
