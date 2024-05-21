@@ -15,12 +15,9 @@ def single_run(init_coeff, config):
 
     config = config.copy()
 
-    import pdb 
-    pdb.set_trace()
-
     config.config_name = "coeff{}_sacd_ours".format(init_coeff)
     config.seed = 8000
-    config.env.lost_sale_cost = init_coeff
+    config.env.lost_sale_cost = [init_coeff]
 
     agent = SacdAgent(config=config)
     agent.run()
@@ -40,5 +37,5 @@ if __name__ == '__main__':
 
     single_run_partial(0)
 
-    pool = ProcessingPool(2)
+    pool = ProcessingPool(3)
     pool.map(single_run_partial, [0, 3, 6])
