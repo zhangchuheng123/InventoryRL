@@ -20,7 +20,7 @@ def single_run(args, config):
     config.algo.hidden_size = hidden_size
     config.algo.num_layers = num_layers
 
-    config.config_name = "l1Q_l{}_h{}_sacd_ours".format(num_layers, hidden_size)
+    config.config_name = "l3Q_l{}_h{}_sacd_ours".format(num_layers, hidden_size)
     config.seed = 8000
 
     agent = SacdAgent(config=config)
@@ -38,9 +38,8 @@ if __name__ == '__main__':
     config = DefaultMunch.fromDict(config)
 
     single_run_partial = partial(single_run, config=config)
-    pool = ProcessingPool(5)
+    # pool = ProcessingPool(5)
     # pool.map(single_run_partial, [(3, 32), (3, 64), (3, 128), (2, 64), (4, 64)])
     # pool.map(single_run_partial, [(1, 64), (2, 64), (3, 64)])
-    pool.map(single_run_partial, [(3, 64), (2, 64), (1, 64), (0, 64), (-1, 64)])
-
-    # single_run((-1, 64), config)
+    # pool.map(single_run_partial, [(3, 64), (2, 64), (1, 64), (0, 64), (-1, 64)])
+    single_run((3, 64), config)

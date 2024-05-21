@@ -122,30 +122,33 @@ class QNetwork(BaseNetwork):
 
         super(BaseNetwork, self).__init__()
 
-        debug = True 
-        if debug:
+        use_l1Q = False 
+        if use_l1Q:
+
             self.encoder = nn.Identity()
             self.head = nn.Linear(num_channels, num_actions)
 
-        # if encoder == 'MLP':
-        #     self.encoder = MLPBase(num_channels, hidden, layers)
-        # elif encoder == 'CNN':
-        #     self.encoder = CNNBase(num_channels, hidden)
+        else:
 
-        # if not use_dueling:
-        #     self.head = nn.Sequential(
-        #         nn.Linear(hidden, hidden),
-        #         nn.ReLU(inplace=True),
-        #         nn.Linear(hidden, num_actions))
-        # else:
-        #     self.a_head = nn.Sequential(
-        #         nn.Linear(hidden, hidden),
-        #         nn.ReLU(inplace=True),
-        #         nn.Linear(hidden, num_actions))
-        #     self.v_head = nn.Sequential(
-        #         nn.Linear(hidden, hidden),
-        #         nn.ReLU(inplace=True),
-        #         nn.Linear(hidden, 1))
+            if encoder == 'MLP':
+                self.encoder = MLPBase(num_channels, hidden, layers)
+            elif encoder == 'CNN':
+                self.encoder = CNNBase(num_channels, hidden)
+
+            if not use_dueling:
+                self.head = nn.Sequential(
+                    nn.Linear(hidden, hidden),
+                    nn.ReLU(inplace=True),
+                    nn.Linear(hidden, num_actions))
+            else:
+                self.a_head = nn.Sequential(
+                    nn.Linear(hidden, hidden),
+                    nn.ReLU(inplace=True),
+                    nn.Linear(hidden, num_actions))
+                self.v_head = nn.Sequential(
+                    nn.Linear(hidden, hidden),
+                    nn.ReLU(inplace=True),
+                    nn.Linear(hidden, 1))
 
         self.use_dueling = use_dueling
 
