@@ -36,7 +36,5 @@ if __name__ == '__main__':
 
     single_run_partial = partial(single_run, config=config)
 
-    single_run_partial(0)
-
     pool = ProcessingPool(3)
     pool.map(single_run_partial, [0, 3, 6])
