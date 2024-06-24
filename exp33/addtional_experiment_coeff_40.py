@@ -15,7 +15,7 @@ def single_run(init_coeff, config):
 
     config = config.copy()
 
-    config.config_name = "coeff{}_sacd_ours_budget40".format(init_coeff)
+    config.config_name = "coeff{}_sacd_ours_N100b40".format(init_coeff)
     config.seed = 8000
     config.env.lost_sale_cost = [init_coeff]
     config.env.target_budget_discount = 40
