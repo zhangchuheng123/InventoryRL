@@ -3,7 +3,6 @@ from classical import ClassicalAgent
 from sac_discrete import SacdAgent
 from munch import DefaultMunch
 from functools import partial
-from itertools import product
 from tqdm import trange
 import numpy as np
 import argparse
@@ -12,24 +11,32 @@ import pdb
 import os 
 
 
-def single_run(hop, config):
-
-    holding_cost, fixed_order_cost, perish_cost = hop
+def single_run(P_plus_L, config):
 
     config = config.copy()
 
-    config.env.holding_cost = [holding_cost, holding_cost]
-    config.env.fixed_order_cost = [fixed_order_cost, fixed_order_cost]
-    config.env.perish_cost = [perish_cost, perish_cost]
+    product_lifetime = P_plus_L // 2 
+    max_lead_time = P_plus_L - product_lifetime
+    arrival_prob = list(np.linspace(0, 1, max_lead_time + 2)[1:])
 
-    config.config_name = f'h{holding_cost}_o{fixed_order_cost}_p{perish_cost}_ss'
+    config.env.product_lifetime = [product_lifetime]
+    config.env.max_lead_time = [max_lead_time]
+    config.env.arrival_prob = arrival_prob
+
+    config.config_name = "ppl{}_ss".format(P_plus_L)
     config.method = "ss_policy"
     agent = ClassicalAgent(config=config)
     agent.evaluate()
 
-    config.config_name = f'h{holding_cost}_o{fixed_order_cost}_p{perish_cost}_ours'
+    config.config_name = "ppl{}_sacd_ours".format(P_plus_L)
     config.budget_estimation_episodes = 20
     config.seed = 8000
+    agent = SacdAgent(config=config)
+    agent.run()
+
+    config.config_name = "ppl{}_sacd_bench".format(P_plus_L)
+    config.budget_estimation_episodes = 500
+    config.seed = 9000
     agent = SacdAgent(config=config)
     agent.run()
 
@@ -45,8 +52,6 @@ if __name__ == '__main__':
 
     config = DefaultMunch.fromDict(config)
 
-    exp_list = product([0.5, 1.0, 1.5], [2, 3, 4], [8, 9, 10, 11, 12])
-
     single_run_partial = partial(single_run, config=config)
     pool = ProcessingPool(4)
-    pool.map(single_run_partial, exp_list)
+    pool.map(single_run_partial, range(2, 14, 2))

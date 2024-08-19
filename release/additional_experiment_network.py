@@ -38,8 +38,5 @@ if __name__ == '__main__':
     config = DefaultMunch.fromDict(config)
 
     single_run_partial = partial(single_run, config=config)
-    # pool = ProcessingPool(5)
-    # pool.map(single_run_partial, [(3, 32), (3, 64), (3, 128), (2, 64), (4, 64)])
-    # pool.map(single_run_partial, [(1, 64), (2, 64), (3, 64)])
-    # pool.map(single_run_partial, [(3, 64), (2, 64), (1, 64), (0, 64), (-1, 64)])
-    single_run((3, 64), config)
+    pool = ProcessingPool(5)
+    pool.map(single_run_partial, [(3, 32), (3, 64), (3, 128), (2, 64), (4, 64)])
