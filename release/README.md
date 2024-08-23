@@ -21,13 +21,6 @@ The main results can be collected by running ``bash train.sh``. The specific ins
 
 All programs will generate results and log the results in Weights & Biases ([https://wandb.ai](https://wandb.ai/)) as well as TensorBoard. The results in tables can be read from these sources accordingly. The figures are plotted using matplotlib ([https://matplotlib.org](https://matplotlib.org/)) based on the data downloaded from these sources.
 
-# Running Time
-
-- Each single run corresponding to one row in Table 4/Table 5 or one curve in Figure 6 takes 30.96 hours on average.
-- Each single run corresponding to one sample in Figure 7 takes 33.83 hours on average.
-- Each single run of the experiments of the subgradient algorithm takes less than 184 hours (with state dimension equaling 12), and that of our algorithm takes 34 hours.
-- The algorithms usually take less time to converge, and we report the time needed for completing prescribed number of iterations.
-
 # Hardware
 
 Our experiments run on a machine with the following requirements:
@@ -36,3 +29,10 @@ Our experiments run on a machine with the following requirements:
 * GPU: 2x NVIDIA GeForce RTX 3090
 * GPU driver: Nvidia driver 535.146.02 with CUDA version 12.2
 * Python version and packages: python-3.10 with all packages specified in ``environment.yaml``
+
+# Running Time
+
+- Each single run corresponding to one row in Table 4/Table 5 or one curve in Figure 6 takes 30.96 hours on average.
+- Each single run corresponding to one sample in Figure 7 takes 33.83 hours on average.
+- Each single run of the experiments of the subgradient algorithm takes less than 184 hours (with state dimension equaling 12), and that of our algorithm takes 34 hours.
+- The algorithms usually take less time to converge, and we report the time needed for completing prescribed number of iterations.
